@@ -1,11 +1,11 @@
 var when = require('when');
 var bt = require('./bustime');
 
-bt.setBaseUrl('http://realtime.ridemcts.com/bustime/api/v2/');
-
-// Replace with your own developer key
+// Use your own developer key
 // http://realtime.ridemcts.com/bustime/newDeveloper.jsp
-bt.setApiKey('API-KEY');
+
+bt.processArguments();
+bt.setBaseUrl('http://realtime.ridemcts.com/bustime/api/v2/');
 
 bt.gatherAllData().then(function(routes) {
     var stops = 0;

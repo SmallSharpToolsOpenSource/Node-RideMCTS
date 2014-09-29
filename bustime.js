@@ -25,9 +25,14 @@ var fetchBusTimeResponse = function(url, params) {
     return when.promise(function(resolve, reject) {
         rest(url).then(function(response) {
             var json = JSON.parse(response.entity);
-            resolve(json['bustime-response']);
-        }).catch(function(e) {
-            console.log('Error: ' + e);
+            var bustimeResponse = json['bustime-response'];
+            if (bustimeResponse.error) {
+                var error = bustimeResponse.error[0];
+                reject(error.msg);
+            }
+            else {
+                resolve(bustimeResponse);
+            }
         });
     });
 };
@@ -54,8 +59,13 @@ exports.parseETA = parseETA;
 
 //// API Configuration ////
 
+var mode = '';
 var baseUrl = '';
 var apiKey = '';
+
+var setMode = function(m) {
+    mode = m;
+};
 
 var setBaseUrl = function(url) {
     baseUrl = url;
@@ -65,8 +75,23 @@ var setApiKey = function(key) {
     apiKey = key;
 };
 
+var processArguments = function() {
+    process.argv.forEach(function (argument, index, array) {
+        if (argument.indexOf('--mode=') !== -1) {
+            var mode = argument.substring(7);
+            setMode(mode);
+        }
+        
+        if (argument.indexOf('--apikey=') !== -1) {
+            var apiKey = argument.substring(9);
+            setApiKey(apiKey);
+        }
+    });
+};
+
 exports.setBaseUrl = setBaseUrl;
 exports.setApiKey = setApiKey;
+exports.processArguments = processArguments;
 
 //// API Calls ////
 
@@ -180,6 +205,13 @@ var gatherStops = function(routes) {
 
 // gather the routes, directions and stops together
 var gatherAllData = function() {
+    if (baseUrl === '') {
+        return when.reject('Base URL must be defined');
+    }
+    if (apiKey === '') {
+        return when.reject('API Key must be defined');
+    }
+    
     return fetchRoutes().then(gatherDirections).then(gatherStops);
 };
 
