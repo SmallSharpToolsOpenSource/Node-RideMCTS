@@ -1,0 +1,24 @@
+{
+  "name": "bt",
+  "version": "1.0.0",
+  "description": "Node.js for RideMCTS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brennanMKE/Node-RideMCTS.git"
+  },
+  "author": "Brennan Stehling",
+  "dependencies": {
+    "rest": "^1.2.0",
+    "when": "^3.4.6"
+  }
+}
