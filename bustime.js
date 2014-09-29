@@ -137,8 +137,15 @@ var fetchStops = function(route, direction) {
             var stops = [];
             for (var i=0;i<response.stops.length;i++) {
                 var stop = response.stops[i];
-                var myStop =  { 'id' : stop.stpid, 'name' : stop.stpnm, 'latitude' : stop.lat, 'longitude' : stop.lon};
-                stops.push({'route' : route, 'direction' : direction, 'stop' : myStop});
+                var myStop =  {
+                    'id' : stop.stpid, 
+                    'name' : stop.stpnm, 
+                    'latitude' : stop.lat, 
+                    'longitude' : stop.lon, 
+                    'routeId' : route.id, 
+                    'direction' : direction
+                };
+                stops.push(myStop);
             }
             route.stops = stops;
             resolve(route);
@@ -203,6 +210,37 @@ var gatherStops = function(routes) {
     return waitForPromises(promises);
 };
 
+var organizeData = function(routes) {
+    var routesHash = {};
+    var stopsHash = {};
+    for (var i=0;i<routes.length;i++) {
+        if (routesHash[routes[i].id] === undefined) {
+            routesHash[routes[i].id] = {
+                'name' : routes[i].name,
+                'color' : routes[i].color
+            };
+        }
+        
+        for (var j=0;j<routes[i].stops.length;j++) {
+            var stop = routes[i].stops[j];
+            if (stopsHash[stop.id] === undefined) {
+                stopsHash[stop.id] = {
+                    'name' : stop.name,
+                    'latitude' : stop.latitude,
+                    'longitude' : stop.longitude,
+                    'routeId' : stop.routeId,
+                    'direction' : stop.direction
+                };
+            }
+        }
+    }
+
+    var lastUpdate = new Date().toISOString();
+    var data = {'routes' : routesHash, 'stops' : stopsHash, 'lastUpdate' : lastUpdate};
+    
+    return data;
+};
+
 // gather the routes, directions and stops together
 var gatherAllData = function() {
     if (baseUrl === '') {
@@ -212,7 +250,9 @@ var gatherAllData = function() {
         return when.reject('API Key must be defined');
     }
     
-    return fetchRoutes().then(gatherDirections).then(gatherStops);
+    return fetchRoutes().then(gatherDirections).then(gatherStops).then(function(routes) {
+        return when.resolve(organizeData(routes));
+    });
 };
 
 exports.gatherAllData = gatherAllData;
