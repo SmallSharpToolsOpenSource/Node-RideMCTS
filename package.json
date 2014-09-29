@@ -1,5 +1,5 @@
 {
-  "name": "bt",
+  "name": "Node-RideMCTS",
   "version": "1.0.0",
   "description": "Node.js for RideMCTS",
   "main": "index.js",
