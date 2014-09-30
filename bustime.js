@@ -1,5 +1,6 @@
 var when = require('when');
 var rest = require('rest');
+var fs = require('fs');
 
 //// Utility Methods ////
 
@@ -53,9 +54,15 @@ var parseETA = function(timestamp) {
     }
 };
 
+var isDateAfterMinutesAgo = function(date, minutes) {
+    var minutesAgo = new Date(new Date().getTime() - (minutes * 60000));
+    return date > minutesAgo;
+};
+
 exports.qs = qs;
 exports.waitForPromises = waitForPromises;
 exports.parseETA = parseETA;
+exports.isDateAfterMinutesAgo = isDateAfterMinutesAgo;
 
 //// API Configuration ////
 
@@ -172,7 +179,11 @@ var fetchPredictions = function(route, direction, stop) {
 
 exports.fetchPredictions = fetchPredictions;
 
-/// Loading Routines ////
+//// Loading Routines ////
+
+var timeout = 20; // minutes to cache data
+var filename = './data.json'; // where to store the data
+var database;
 
 var gatherDirections = function(routes) {
     return fetchRoutes().then(function(routes) {
@@ -255,4 +266,58 @@ var gatherAllData = function() {
     });
 };
 
-exports.gatherAllData = gatherAllData;
+var loadFileData = function() {
+    return when.promise(function(resolve, reject) {
+        fs.exists(filename, function (exists) {
+            if (exists) {
+                fs.readFile(filename, function (err, filedata) {
+                    if (!err) {
+                        var data = JSON.parse(filedata);
+                        var lastUpdate = Date.parse(data.lastUpdate);
+                        if (isDateAfterMinutesAgo(lastUpdate, timeout)) {
+                            database = data;
+                            resolve(data);
+                        }
+                        else {
+                            resolve(null);
+                        }
+                    }
+                    else {
+                        resolve(null);
+                    }
+                });
+            }
+            else {
+                resolve(null);
+            }
+        });
+    });
+};
+
+var loadData = function() {
+    if (database !== undefined) {
+        var lastUpdate = Date.parse(database.lastUpdate);
+        if (isDateAfterMinutesAgo(lastUpdate, timeout)) {
+            return when.resolve(database);
+        }
+    }
+    
+    return loadFileData().then(function(data) {
+        if (data) {
+            return when.resolve(data);
+        }
+        else {
+            return gatherAllData().then(function(data) {
+                // write the data out to a file to reuse while the data is still fresh (lastUpdated)
+                fs.writeFile(filename, JSON.stringify(data, null, 4), function(err) {
+                    if (err) {
+                        console.log('Error writing out JSON data: ' + err);
+                    }
+                });
+                return when.resolve(data);
+            });
+        }
+    });
+};
+
+exports.loadData = loadData;
